@@ -2,7 +2,7 @@
 
 namespace midas.Models
 {
-    public class OTPFormData
+    public record OTPDto
     {
         /// <summary>
         ///  Generated OTP

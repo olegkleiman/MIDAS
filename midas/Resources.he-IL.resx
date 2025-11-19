@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="sms_message" xml:space="preserve">
+    <value>קוד כניסה שלך:</value>
+  </data>
   <data name="bad_clientid" xml:space="preserve">
     <value>No B2C policy is assigned to passed clientId</value>
   </data>
@@ -131,9 +134,6 @@
   </data>
   <data name="invalid_ct" xml:space="preserve">
     <value>Invalid SSO Token</value>
-  </data>
-  <data name="magic_link_no_results" xml:space="preserve">
-    <value>No results from MagicLink Generator</value>
   </data>
   <data name="not_allowed_issuer" xml:space="preserve">
     <value>Issuer is not allowed</value>
@@ -161,9 +161,6 @@
   </data>
   <data name="no_upgrade_group_name" xml:space="preserve">
     <value>Can't find Upgrade Group Name</value>
-  </data>
-  <data name="sms_message" xml:space="preserve">
-    <value>קוד כניסה שלך:</value>
   </data>
   <data name="token_expired" xml:space="preserve">
     <value>Token expired</value>

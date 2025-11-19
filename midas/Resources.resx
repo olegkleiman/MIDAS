@@ -120,4 +120,7 @@
   <data name="sms_message" xml:space="preserve">
     <value>Your verification code is:</value>
   </data>
+  <data name="no_customer" xml:space="preserve">
+    <value>Could not find customer</value>
+  </data>
 </root>

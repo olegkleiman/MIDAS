@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using Microsoft.Data.SqlClient;
+using System.Security.Cryptography;
 
 namespace midas.Services.OTP
 {
@@ -20,6 +21,17 @@ namespace midas.Services.OTP
             }
 
             return value.ToString();
+        }
+
+        public async Task Save(string code)
+        {
+            // TODO: Implement actual storage logic
+            return;
+        }
+
+        public async Task<string?> RetrieveOID(string code)
+        {
+            return Guid.NewGuid().ToString();
         }
     }
 }

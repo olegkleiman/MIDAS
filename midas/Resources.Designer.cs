@@ -61,6 +61,15 @@ namespace midas {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Could not find customer.
+        /// </summary>
+        internal static string no_customer {
+            get {
+                return ResourceManager.GetString("no_customer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Your verification code is:.
         /// </summary>
         internal static string sms_message {

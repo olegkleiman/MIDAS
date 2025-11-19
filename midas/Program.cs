@@ -1,11 +1,16 @@
 
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using midas.Models;
+using midas.Services.JWT;
 using midas.Services.Membership;
 using midas.Services.OTP;
 using midas.Services.SMS;
+using Newtonsoft.Json.Linq;
 
 namespace midas
 {
@@ -15,13 +20,14 @@ namespace midas
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Bind SMS section to SMSServiceOptions before building the app
+            // Bind config sections to the related services before building the app
             builder.Services.Configure<SMSSendOptions>(builder.Configuration.GetSection("SmsServiceOptions"));
+            builder.Services.Configure<JWTIssuerOptions>(builder.Configuration.GetSection("JWTIssuerOptions"));
 
             builder.Services.AddScoped<SqlConnection>(serviceProvider =>
             {
                 var config = serviceProvider.GetRequiredService<IConfiguration>();
-                var connectionString = config.GetConnectionString("UserInfo");
+                var connectionString = config.GetConnectionString("HRData");
                 return new SqlConnection(connectionString);
             });
 
@@ -33,6 +39,7 @@ namespace midas
 
             builder.Services.AddSingleton<IMembershipService, MembershipService>();
             builder.Services.AddSingleton<IOTPService, OTPService>();
+            builder.Services.AddSingleton<IJWTIssuerService, JWTIssuerService>();
 
             // Add services to the container.
             builder.Services.AddAuthorization();
@@ -52,29 +59,70 @@ namespace midas
 
             app.UseAuthorization();
 
-            app.MapGet("/otp", (string id, string phoneNum, 
-                                HttpContext httpContext,
-                                IOTPService otpService,
-                                ISMSService smsService,
-                                IMembershipService benefitsService) =>
+            app.MapGet("/api/otp", async (
+                [FromQuery(Name = "id")] string userId,
+                [FromQuery(Name = "phoneNum")] string phoneNum, 
+                HttpContext httpContext,
+                IOTPService otpService,
+                ISMSService smsService,
+                IMembershipService membershipService,
+                ILogger<Program> logger) =>
             {
-                benefitsService.IsMember(phoneNum);
+                try
+                {
+                    if (!await membershipService.IsMember(phoneNum))
+                    {
+                        return Results.Ok(Resources.no_customer);
+                    }
 
-                string otp = otpService.Generate();
-                ////otpService.Save();
+                    string otp = otpService.Generate();
+                    await otpService.Save(otp);
 
-                smsService.Send(phoneNum, otp);
+                    await smsService.Send(phoneNum, otp);
 
-                return Results.Ok(new { OTP = "123456" });
+                    return Results.Ok();
+                }
+                catch (ApplicationException ex)
+                {
+                    logger.LogError(ex.Message);
+                    return Results.Ok(new TLVOAuthErroeResponse()
+                    {
+                        ErrorDesc = ex.Message,
+                        IsError = true
+                    });
+                }
+
             })
             .WithName("RequestOTP")
             .WithOpenApi();
 
-            app.MapPost("/api/token", async (OTPFormData request,
-                                             SqlConnection conn) =>
+            app.MapPost("/api/token", async ([FromBody] OTPDto request,
+                                            IOTPService otpService,
+                                            IJWTIssuerService jwtIssuer) =>
             {
-                //await conn.OpenAsync();
-            });
+                try
+                {
+                    string? oid = await otpService.RetrieveOID(request.code);
+                    if (string.IsNullOrEmpty(oid) )
+                    {
+                        return Results.Ok("Unknown OTP");
+                    }
+
+                    var tokens = await jwtIssuer.IssueForSubject(oid);
+                    return Results.Ok(tokens);
+                }
+                catch(Exception ex)
+                {                     
+                    return Results.Ok(new TLVOAuthErroeResponse()
+                    {
+                        ErrorDesc = ex.Message,
+                        IsError = true
+                    });
+                }   
+
+            })
+            .WithName("Login")
+            .WithOpenApi();
 
 
             app.Run();
