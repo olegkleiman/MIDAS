@@ -1,0 +1,74 @@
+# .gitignore for .NET 8 / Visual Studio projects
+# https://github.com/github/gitignore/blob/main/VisualStudio.gitignore (trimmed & adapted)
+
+# Build / output
+/bin/
+obj/
+**/bin/
+**/obj/
+artifacts/
+publish/
+out/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+.nuget/packages/
+
+# ASP.NET / app settings
+# keep appsettings.json in source; ignore local/dev secret overrides if you use them
+appsettings.*.Local.json
+appsettings.*.Secrets.json
+secrets.json
+
+# Logs, test results, coverage
+*.log
+logs/
+TestResults/
+coverage/
+*.coverage
+*.trx
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Certificates and keys
+*.pfx
+*.key
+*.cer
+
+# Generated files
+GeneratedArtifacts/
+obj.Release/
+obj.Debug/
+
+# Rider / ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Temporary files
+*.tmp
+*.temp
+
+# Ignore publish profiles and local launch settings that may contain secrets
+Properties/launchSettings.json
+
+# Optional: ignore user-specific settings
+*.userprefs
+
+# End
