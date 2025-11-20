@@ -23,6 +23,7 @@ namespace midas
             // Bind config sections to the related services before building the app
             builder.Services.Configure<SMSSendOptions>(builder.Configuration.GetSection("SmsServiceOptions"));
             builder.Services.Configure<JWTIssuerOptions>(builder.Configuration.GetSection("JWTIssuerOptions"));
+            builder.Services.Configure<OidcOptions>(builder.Configuration.GetSection("OidcOptions"));
 
             builder.Services.AddScoped<SqlConnection>(serviceProvider =>
             {

@@ -1,50 +1,46 @@
 ﻿using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using midas.Models;
-using System.IdentityModel.Tokens.Jwt;
 using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Keys.Cryptography;
-using System.Net;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
+using midas.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using Microsoft.IdentityModel.KeyVaultExtensions;
 
 namespace midas.Services.JWT
 {
-    public class JWTIssuerService(IOptions<JWTIssuerOptions> options) : IJWTIssuerService
+    public class JWTIssuerService(IOptions<JWTIssuerOptions> jwtOptions,
+                                  IOptions<OidcOptions> oidcOptions) : IJWTIssuerService
     {
-        private readonly JWTIssuerOptions issuerOptions = options.Value;
+        private readonly JWTIssuerOptions issuerOptions = jwtOptions.Value;
+        private readonly OidcOptions oidcOptions = oidcOptions.Value;
 
         public async Task<AuthTokens> IssueForSubject(string subject)
         {
-            // TODO: Get the assumetric key from Azure KeyVault
-
-            var clientId = "aaf81556-7561-4a46-9bd6-3aa0c707da2c";
-            var tenantId = "aa640f10-95f8-4f05-96f1-529dbbc11897";
-            var clientSecret = "5Zs8Q~yAwnnYh1m4GyonDLkuQwAPP77o64d9Vbvb";
+            var clientId = oidcOptions.ClientID;
+            var tenantId = oidcOptions.TenantID;
+            var clientSecret = oidcOptions.ClientSecret;
 
             var credentials = new ClientSecretCredential(
                 tenantId,
                 clientId,
                 clientSecret
             );
-            var keyClient = new KeyClient(
-                new Uri(issuerOptions.KeyVaultUrl),
-                credentials // new DefaultAzureCredential()
-            );
-            KeyVaultKey vaultKey = await keyClient.GetKeyAsync("HRKey");
 
-            var rsa = vaultKey.Key.ToRSA(false);
-            var securityKey = new RsaSecurityKey(rsa)
+            var keyClient = new KeyClient(new Uri(issuerOptions.KeyVaultUrl), credentials);
+            KeyVaultKey key = await keyClient.GetKeyAsync(issuerOptions.KeyName);
+
+            var securityKey = new KeyVaultRsaSecurityKey(key.Id.ToString());
+
+            var signingCredentials = new SigningCredentials(securityKey,
+                                                            SecurityAlgorithms.RsaSha256)
             {
-                KeyId = vaultKey.Key.Id
+                CryptoProviderFactory = new CryptoProviderFactory
+                {
+                    CustomCryptoProvider = new KeyVaultCryptoProvider()
+                }
             };
-
-            var signingCredentials = new SigningCredentials(
-                securityKey,
-                SecurityAlgorithms.RsaSha256
-            );
 
             var claims = new[]
             {
