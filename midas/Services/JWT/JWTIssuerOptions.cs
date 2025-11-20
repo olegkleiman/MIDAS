@@ -7,5 +7,6 @@
         public required string Audience { get; set; }
         public required string KeyVaultUrl { get; set; }
         public required string KeyName { get; set; }
+        public required string SecretName { get; set; }
     }
 }
