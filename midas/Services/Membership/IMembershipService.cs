@@ -2,6 +2,6 @@
 {
     public interface IMembershipService
     {
-        Task<bool> IsMember(string userID);
+        bool IsMember(string userID, string phoneNumber);
     }
 }

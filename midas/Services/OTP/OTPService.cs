@@ -1,10 +1,17 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Microsoft.EntityFrameworkCore;
+using midas.Models.Tables;
+using midas.Services.Db;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace midas.Services.OTP
 {
-    public class OTPService : IOTPService
+    public class OTPService(OTPDbContext dbContext) : IOTPService
     {
+        readonly OTPDbContext _dbContext = dbContext;
+        const int EXPIRE_MIN = 5; // 5 minutes
+        const string audience = "midas-api";
+
         public string Generate()
         {
             uint upperBound = 999999;
@@ -23,10 +30,33 @@ namespace midas.Services.OTP
             return value.ToString();
         }
 
-        public async Task Save(string code)
+        private static byte[] SHA256_hash(string value)
         {
-            // TODO: Implement actual storage logic
-            return;
+            Encoding enc = Encoding.UTF8;
+            return SHA256.HashData(enc.GetBytes(value));
+        }
+
+        public bool Save(string userId,
+                        string phoneNumber,
+                        string otp)
+        {
+            _dbContext.Otps.Where(
+                    info => info.user_id.Contains(userId)
+                 //&& info.otp_exp < DateTime.Now
+                 )
+                .ExecuteDelete();
+
+            _dbContext.Otps.Add(new UsersOtp()
+            {
+                user_id = userId,
+                phone_number = phoneNumber,
+                otp = SHA256_hash(otp),
+                otp_exp = DateTime.Now.AddMinutes(EXPIRE_MIN),
+                audience = audience,
+                plain_otp = otp
+            });
+
+            return _dbContext.SaveChanges() > 0;
         }
 
         public async Task<string?> RetrieveOID(string code)

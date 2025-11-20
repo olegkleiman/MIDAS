@@ -2,10 +2,13 @@
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using midas.Models;
+using midas.Models.Tables;
+using midas.Services.Db;
 using midas.Services.JWT;
 using midas.Services.Membership;
 using midas.Services.OTP;
@@ -25,12 +28,14 @@ namespace midas
             builder.Services.Configure<JWTIssuerOptions>(builder.Configuration.GetSection("JWTIssuerOptions"));
             builder.Services.Configure<OidcOptions>(builder.Configuration.GetSection("OidcOptions"));
 
-            builder.Services.AddScoped<SqlConnection>(serviceProvider =>
-            {
-                var config = serviceProvider.GetRequiredService<IConfiguration>();
-                var connectionString = config.GetConnectionString("HRData");
-                return new SqlConnection(connectionString);
-            });
+            builder.Services.AddDbContext<HRDbContext>(options => 
+                options.UseSqlServer(
+                     builder.Configuration.GetConnectionString("HRData")
+            ));
+            builder.Services.AddDbContext<OTPDbContext>(options => 
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("SSO_DB")
+            ));
 
             builder.Services.AddHttpClient<ISMSService, SMSService>((sp, client) =>
             {
@@ -38,8 +43,8 @@ namespace midas
                 client.BaseAddress = new Uri(options.EndpointUrl);
             });
 
-            builder.Services.AddSingleton<IMembershipService, MembershipService>();
-            builder.Services.AddSingleton<IOTPService, OTPService>();
+            builder.Services.AddScoped<IMembershipService, MembershipService>();
+            builder.Services.AddScoped<IOTPService, OTPService>();
             builder.Services.AddSingleton<IJWTIssuerService, JWTIssuerService>();
 
             // Add services to the container.
@@ -71,25 +76,32 @@ namespace midas
             {
                 try
                 {
-                    if (!await membershipService.IsMember(phoneNum))
+                    if( !membershipService.IsMember(userId, phoneNum) )
                     {
-                        return Results.Ok(Resources.no_customer);
+                        return Results.Ok(new TLVOAuthErrorResponse()
+                        {
+                            ErrorDesc = Resources.no_customer,
+                            IsError = true,
+                            ErrorId = 14
+                        });
+  
                     }
+                    logger.LogInformation($"Membership validated for phone number: '{phoneNum}'");
 
                     string otp = otpService.Generate();
-                    await otpService.Save(otp);
-
-                    await smsService.Send(phoneNum, otp);
+                    if( otpService.Save(userId, phoneNum, otp) )
+                        await smsService.Send(phoneNum, otp);
 
                     return Results.Ok();
                 }
                 catch (ApplicationException ex)
                 {
                     logger.LogError(ex.Message);
-                    return Results.Ok(new TLVOAuthErroeResponse()
+                    return Results.Ok(new TLVOAuthErrorResponse()
                     {
                         ErrorDesc = ex.Message,
-                        IsError = true
+                        IsError = true,
+                        ErrorId = 12
                     });
                 }
 
@@ -114,10 +126,11 @@ namespace midas
                 }
                 catch(Exception ex)
                 {                     
-                    return Results.Ok(new TLVOAuthErroeResponse()
+                    return Results.Ok(new TLVOAuthErrorResponse()
                     {
                         ErrorDesc = ex.Message,
-                        IsError = true
+                        IsError = true,
+                        ErrorId = 11
                     });
                 }   
 
