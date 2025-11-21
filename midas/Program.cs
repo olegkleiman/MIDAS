@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -11,9 +12,13 @@ using midas.Models.Tables;
 using midas.Services.Db;
 using midas.Services.JWT;
 using midas.Services.Membership;
+using midas.Services.Oid;
 using midas.Services.OTP;
 using midas.Services.SMS;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace midas
 {
@@ -46,6 +51,7 @@ namespace midas
             builder.Services.AddScoped<IMembershipService, MembershipService>();
             builder.Services.AddScoped<IOTPService, OTPService>();
             builder.Services.AddSingleton<IJWTIssuerService, JWTIssuerService>();
+            builder.Services.AddSingleton<IOidService, OidService>();
 
             // Add services to the container.
             builder.Services.AddAuthorization();
@@ -111,33 +117,65 @@ namespace midas
 
             app.MapPost("/api/token", async ([FromBody] OTPDto request,
                                             IOTPService otpService,
-                                            IJWTIssuerService jwtIssuer) =>
+                                            IJWTIssuerService jwtIssuer,
+                                            IOidService oidService) =>
             {
                 try
                 {
-                    string? oid = await otpService.RetrieveOID(request.code);
-                    if (string.IsNullOrEmpty(oid) )
-                    {
-                        return Results.Ok("Unknown OTP");
-                    }
+                    string? userId = otpService.RetrieveUserId(request.code);
+                    if( string.IsNullOrEmpty(userId) )
+                        return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.unknown_otp, errorId: 10));
+
+                    var oid = oidService.RetrieveOID(userId);
 
                     var tokens = await jwtIssuer.IssueForSubject(oid);
                     return Results.Ok(tokens);
                 }
                 catch(Exception ex)
                 {                     
-                    return Results.Ok(new TLVOAuthErrorResponse()
-                    {
-                        ErrorDesc = ex.Message,
-                        IsError = true,
-                        ErrorId = 11
-                    });
+                    return Results.Ok(new TLVOAuthErrorResponse(errorDesc: ex.Message, errorId: 11));
                 }   
 
             })
             .WithName("Login")
             .WithOpenApi();
 
+            ///<summary>
+            /// Decode and validate the passed token (JWT assumed)
+            ///</summary>
+            ///<returns>
+            /// The list of verified claims
+            ///</returns>
+            app.MapPost("/api/tokeninfo", (IJWTIssuerService jwtIssuer,
+                                           [FromServices] OidService oidService,
+                                           [FromBody] VerifyFormData formData) =>
+            {
+                IEnumerable<Claim> claims = jwtIssuer.VerifyToken(formData.token);
+                var oid = (from c in claims
+                        where c.Value == JwtRegisteredClaimNames.Sub
+                        select c).FirstOrDefault();
+ 
+                var userId = oidService.RetrieveUserId(oid.Value);
+                var claimList = claims.ToList();
+                claimList.RemoveAll(c => c.Value == JwtRegisteredClaimNames.Sub);
+                claimList.Add(new Claim(JwtRegisteredClaimNames.Sub, oid.ToString()));
+
+                return Results.Ok(claims);
+            });
+
+            /// <summary>
+            /// This method receives the refresh token and, if verified, issues the set of new tokens
+            /// </summary>
+            /// Because refresh token was previosuly encrypted with AES, it may contain '+' (plus) charachters
+            /// For URL query parameters, this '+' is automatically replaced with ' ' (space) that eventually 
+            /// URL encoding convention.
+            /// To prevent such replacement, POST verb is used.
+            app.MapPost("/refresh_token", 
+                    [AllowAnonymous] (ILogger<Program> logger,
+                                     [FromBody] RefreshTokenFormData body) =>
+            {
+
+            });
 
             app.Run();
         }

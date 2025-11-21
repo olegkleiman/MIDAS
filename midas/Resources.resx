@@ -123,4 +123,7 @@
   <data name="no_customer" xml:space="preserve">
     <value>Could not find customer</value>
   </data>
+  <data name="unknown_otp" xml:space="preserve">
+    <value>Unknown OTP</value>
+  </data>
 </root>

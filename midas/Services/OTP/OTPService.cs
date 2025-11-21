@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using midas.Models.Tables;
 using midas.Services.Db;
+using midas.Services.Oid;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -9,6 +10,7 @@ namespace midas.Services.OTP
     public class OTPService(OTPDbContext dbContext) : IOTPService
     {
         readonly OTPDbContext _dbContext = dbContext;
+
         const int EXPIRE_MIN = 5; // 5 minutes
         const string audience = "midas-api";
 
@@ -59,9 +61,20 @@ namespace midas.Services.OTP
             return _dbContext.SaveChanges() > 0;
         }
 
-        public async Task<string?> RetrieveOID(string code)
+        public string RetrieveUserId(string code)
         {
-            return Guid.NewGuid().ToString();
+            var storedValue = (_dbContext.Otps.Where(
+                info => info.plain_otp != null && info.plain_otp.Contains(code)
+                //&& info.otp_exp < DateTime.Now
+            )).FirstOrDefault();
+            if (storedValue == null)
+                return string.Empty;
+
+            return storedValue.user_id;
         }
+
+
+
+
     }
 }

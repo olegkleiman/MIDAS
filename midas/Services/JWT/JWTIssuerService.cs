@@ -13,16 +13,21 @@ using midas.Utils;
 namespace midas.Services.JWT
 {
     public class JWTIssuerService(IOptions<JWTIssuerOptions> jwtOptions,
-                                  IOptions<OidcOptions>      oidcOptions,
-                                  ILogger<JWTIssuerService>  logger) : IJWTIssuerService
+                                  IOptions<OidcOptions> oidcOptions,
+                                  ILogger<JWTIssuerService> logger) : IJWTIssuerService
+
     {
-        private readonly JWTIssuerOptions _issuerOptions     = jwtOptions.Value;
+        private readonly JWTIssuerOptions _jwtOptions        = jwtOptions.Value;
         private readonly OidcOptions      _oidcOptions       = oidcOptions.Value;
         private readonly ILogger<JWTIssuerService> _logger   = logger;
 
+        SecretClient? _secretClient = null;
+        KeyClient? _keyClient = null;
+        EncryptionHelper? _encryptionHelper = null;
+
         private readonly DateTime _epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public ClientSecretCredential _credentials => new ClientSecretCredential(
+        public ClientSecretCredential _credentials => new(
             _oidcOptions.TenantID,
             _oidcOptions.ClientID,
             _oidcOptions.ClientSecret
@@ -30,12 +35,14 @@ namespace midas.Services.JWT
 
         private string CreateRefreshToken(string oid)
         {
-            var secretClient = new SecretClient(new Uri(_issuerOptions.KeyVaultUrl), _credentials);
+            var secretClient = _secretClient ??
+                new (new Uri(_jwtOptions.KeyVaultUrl), _credentials);
 
             try
             {
-                KeyVaultSecret secret = secretClient.GetSecret(_issuerOptions.SecretName);
-                EncryptionHelper encryptionHelper = new(secret.Value);
+                KeyVaultSecret secret = secretClient.GetSecret(_jwtOptions.RefreshTokenSecretName);
+                EncryptionHelper encryptionHelper = _encryptionHelper ??
+                                                    new(secret.Value);
                 long exp = (long)(DateTime.UtcNow.AddDays(60) - _epoch).TotalSeconds;
                 return encryptionHelper.Encrypt($"{oid};{exp}");
             }
@@ -51,8 +58,9 @@ namespace midas.Services.JWT
         {
             var refreshToken = CreateRefreshToken(subject);
 
-            var keyClient = new KeyClient(new Uri(_issuerOptions.KeyVaultUrl), _credentials);
-            KeyVaultKey key = await keyClient.GetKeyAsync(_issuerOptions.KeyName);
+            KeyClient keyClient = _keyClient ??
+                            new (new Uri(_jwtOptions.KeyVaultUrl), _credentials);
+            KeyVaultKey key = await keyClient.GetKeyAsync(_jwtOptions.KeyName);
 
             var securityKey = new KeyVaultRsaSecurityKey(key.Id.ToString());
 
@@ -71,10 +79,10 @@ namespace midas.Services.JWT
             };
 
             var token = new JwtSecurityToken(
-                issuer: _issuerOptions.Issuer,
-                audience: _issuerOptions.Audience,
+                issuer: _jwtOptions.Issuer,
+                audience: _jwtOptions.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(_issuerOptions.ExpiredInHours),
+                expires: DateTime.UtcNow.AddHours(_jwtOptions.ExpiredInHours),
                 signingCredentials: signingCredentials
             );
 
@@ -85,5 +93,25 @@ namespace midas.Services.JWT
             };
         }
 
+
+        public IEnumerable<Claim> VerifyToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            TokenValidationParameters validationParams = new()
+            {
+                ValidateIssuer = true,
+                ValidIssuer = _jwtOptions.Issuer,
+                ValidateAudience = true,
+                ValidAudience = _jwtOptions.Audience,
+                ValidateLifetime = true,
+                ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+            };
+            ClaimsPrincipal principal = tokenHandler.ValidateToken(token, validationParams, out _);
+
+            var subClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? "";
+
+            return principal.Claims;
+        }
     }
 }

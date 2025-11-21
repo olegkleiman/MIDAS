@@ -12,6 +12,6 @@ namespace midas.Services.OTP
                   string otp);
         
         // Find OID accociated with OTP
-        Task<string?> RetrieveOID(string code);
+        string RetrieveUserId(string code);
     }
 }

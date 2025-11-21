@@ -9,7 +9,7 @@ namespace midas.Models.Tables
         [Key]
         public int id { get; set; }
         public string refresh_token { get; set; }
-    }
+    }   
 
     [Table(name: "users_otp")]
     public record UsersOtp

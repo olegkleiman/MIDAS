@@ -77,5 +77,14 @@ namespace midas {
                 return ResourceManager.GetString("sms_message", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown OTP.
+        /// </summary>
+        internal static string unknown_otp {
+            get {
+                return ResourceManager.GetString("unknown_otp", resourceCulture);
+            }
+        }
     }
 }

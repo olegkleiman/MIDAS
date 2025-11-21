@@ -120,6 +120,9 @@
   <data name="sms_message" xml:space="preserve">
     <value>קוד כניסה שלך:</value>
   </data>
+  <data name="no_customer" xml:space="preserve">
+    <value>המשתמש לא נמצא</value>
+  </data>
   <data name="bad_clientid" xml:space="preserve">
     <value>No B2C policy is assigned to passed clientId</value>
   </data>
@@ -140,9 +143,6 @@
   </data>
   <data name="no_clientId" xml:space="preserve">
     <value>No clientId was passed in query string or it has a bad format</value>
-  </data>
-  <data name="no_customer" xml:space="preserve">
-    <value>המשתמש לא נמצא</value>
   </data>
   <data name="no_idp" xml:space="preserve">
     <value>Can't connect to IdP subsytem</value>
@@ -167,5 +167,9 @@
   </data>
   <data name="unknown_client_id" xml:space="preserve">
     <value>Unknown Client Id</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="unknown_otp" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
   </data>
 </root>
