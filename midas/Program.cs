@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Logging;
 using midas.Models;
 using midas.Models.Tables;
 using midas.Services.Db;
@@ -19,6 +20,7 @@ using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace midas
 {
@@ -69,6 +71,8 @@ namespace midas
                 app.UseSwaggerUI();
             }
 
+            IdentityModelEventSource.ShowPII = true;
+
             app.UseAuthorization();
 
             app.MapGet("/api/otp", async (
@@ -83,15 +87,8 @@ namespace midas
                 try
                 {
                     if( !membershipService.IsMember(userId, phoneNum) )
-                    {
-                        return Results.Ok(new TLVOAuthErrorResponse()
-                        {
-                            ErrorDesc = Resources.no_customer,
-                            IsError = true,
-                            ErrorId = 14
-                        });
-  
-                    }
+                        return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.no_customer, errorId: 14));
+
                     logger.LogInformation($"Membership validated for phone number: '{phoneNum}'");
 
                     string otp = otpService.Generate();
@@ -144,23 +141,30 @@ namespace midas
             /// Decode and validate the passed token (JWT assumed)
             ///</summary>
             ///<returns>
-            /// The list of verified claims
+            /// The list of verified claims 
             ///</returns>
-            app.MapPost("/api/tokeninfo", (IJWTIssuerService jwtIssuer,
-                                           [FromServices] OidService oidService,
-                                           [FromBody] VerifyFormData formData) =>
+            app.MapPost("/api/tokeninfo", async ([FromBody] VerifyFormData formData,
+                                            [FromServices] IJWTIssuerService jwtIssuer,
+                                            [FromServices] IOidService oidService
+                                           ) =>
             {
-                IEnumerable<Claim> claims = jwtIssuer.VerifyToken(formData.token);
+                IEnumerable<Claim> claims = await jwtIssuer.VerifyToken(formData.token);
                 var oid = (from c in claims
-                        where c.Value == JwtRegisteredClaimNames.Sub
-                        select c).FirstOrDefault();
- 
-                var userId = oidService.RetrieveUserId(oid.Value);
-                var claimList = claims.ToList();
-                claimList.RemoveAll(c => c.Value == JwtRegisteredClaimNames.Sub);
-                claimList.Add(new Claim(JwtRegisteredClaimNames.Sub, oid.ToString()));
+                            where c.Type == ClaimTypes.NameIdentifier
+                            select c).FirstOrDefault();
+                if( oid == null )
+                    return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.no_customer, errorId: 14));
 
-                return Results.Ok(claims);
+                var userId = oidService.RetrieveUserId(oid.Value);
+
+                var claimList = from claim in claims
+                                select new
+                                {
+                                    Type = claim.Type,
+                                    Value = claim.Type == ClaimTypes.NameIdentifier ? userId : claim.Value
+                                };  
+
+                return Results.Ok(claimList);
             });
 
             /// <summary>

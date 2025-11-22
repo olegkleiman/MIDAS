@@ -9,9 +9,8 @@ namespace midas.tests
 {
     internal class SMSServiceTest
     {
-        private IOptions<SMSSendOptions> _options;
+        private IOptions<SMSSendOptions?> _options;
         private ILogger<ISMSService> _logger;
-        private HttpClient _httpClient;
         private SMSService _service;
         private FakeHttpMessageHandler _fakeHandler;
 

@@ -13,7 +13,10 @@ namespace midas.Models
 
         public SqlConnectionFactory(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connStr = configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connStr))
+                throw new InvalidOperationException("Connection string 'DefaultConnection' is missing or empty.");
+            _connectionString = connStr;
         }
 
         public SqlConnection CreateConnection()

@@ -8,12 +8,12 @@ namespace midas.Models.SMS
     public class SMSMessage
     {
         [JsonPropertyName("transactinId")]
-        public string transactinId { get; set; }
+        public required string transactinId { get; set; }
 
         [JsonPropertyName("message")]
-        public string message { get; set; }
+        public required string message { get; set; }
 
         [JsonPropertyName("recipient")]
-        public List<string> recipient { get; set; }
+        public required List<string> recipient { get; set; }
     }
 }

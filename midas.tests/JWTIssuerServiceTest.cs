@@ -25,21 +25,22 @@ namespace midas.tests
             Audience = "test-audience",
             KeyVaultUrl = "https://test.vault.azure.net/",
             KeyName = "test-key",
-            SecretName = "refresh-secret",
+            OidSecretName = "refresh-secret",
+            RefreshTokenSecretName = "refresh",
             ExpiredInHours = 1
         };
 
-        private OidcOptions _oidcOptions = new()
+        private readonly OidcOptions _oidcOptions = new()
         {
             TenantID = "1111",
             ClientID = "2222",
             ClientSecret = "3333"
         };
 
-        private ILogger<JWTIssuerService>   _logger;
-        private SecretClient                _secretClient;
-        private KeyClient                   _keyClient;
-        private EncryptionHelper            _encryptionHelper;
+        private ILogger<JWTIssuerService>?   _logger;
+        private SecretClient?                _secretClient;
+        private KeyClient?                   _keyClient;
+        private EncryptionHelper?            _encryptionHelper;
 
         [SetUp]
         public void Setup()
@@ -51,7 +52,7 @@ namespace midas.tests
         }
 
         [Test]
-        public async Task IssueForSubject_ShouldReturnTokens()
+        public void IssueForSubject_ShouldReturnTokens()
         {
             // Arrange
             var optionsJwt = Substitute.For<IOptions<JWTIssuerOptions>>();
@@ -62,10 +63,10 @@ namespace midas.tests
 
             // Mock SecretClient.GetSecret()
             var secret = Response.FromValue(
-                new KeyVaultSecret(_jwtOptions.SecretName, "my-secret-value"),
+                new KeyVaultSecret(_jwtOptions.OidSecretName, "my-secret-value"),
                 Substitute.For<Response>()
             );
-            _secretClient.GetSecret(_jwtOptions.SecretName).Returns(secret);
+            _secretClient.GetSecret(_jwtOptions.OidSecretName).Returns(secret);
 
             //// Mock EncryptionHelper behavior (Encrypt)
             //_encryptionHelper.Encrypt(Arg.Any<string>())

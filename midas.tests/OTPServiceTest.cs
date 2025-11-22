@@ -30,7 +30,7 @@ namespace midas.tests
             _dbContext.Otps.Returns(_mockOtpDbSet);
             _dbContext.SaveChanges().Returns(1);
 
-            _service = new OTPService(null, _dbContext);
+            _service = new OTPService(_dbContext);
         }
 
         [Test]
@@ -56,10 +56,10 @@ namespace midas.tests
         }
 
         [Test]
-        public async Task RetrieveOID_Returns_Guid_String()
+        public void RetrieveOID_Returns_Guid_String()
         {
             var code = "anycode";
-            var oid = await _service.RetrieveOID(code);
+            var oid = _service.RetrieveUserId(code);
 
             Assert.IsNotNull(oid);
             Assert.IsTrue(System.Guid.TryParse(oid, out _));

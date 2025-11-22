@@ -7,6 +7,6 @@ namespace midas.Services.JWT
     public interface IJWTIssuerService
     {
         Task<AuthTokens> IssueForSubject(string subject);
-        public IEnumerable<Claim> VerifyToken(string token);
+        public Task<IEnumerable<Claim>> VerifyToken(string token);
     }
 }

@@ -81,7 +81,7 @@ namespace midas.tests
         [Test]
         public async Task Token_Post_Should_Return_Tokens_When_Otp_Is_Valid()
         {
-            _factory.OtpMock.RetrieveOID("1234").Returns("OID-999");
+            _factory.OtpMock.RetrieveUserId("1234").Returns("OID-999");
 
             _factory.JwtMock.IssueForSubject("OID-999")
                 .Returns(callInfo => Task.FromResult(new Models.AuthTokens { AccessToken = "AAA", RefreshToken = "BBB" }));
@@ -102,7 +102,7 @@ namespace midas.tests
         [Test]
         public async Task Token_Post_Should_Return_Unknown_OTP_When_Not_Found()
         {
-            _factory.OtpMock.RetrieveOID("1234").Returns((string?)null);
+            _factory.OtpMock.RetrieveUserId("1234").Returns((string?)null);
 
             var response = await _client.PostAsJsonAsync("/api/token", new { code = "1234" });
 
@@ -114,7 +114,7 @@ namespace midas.tests
         [Test]
         public async Task Token_Post_Should_Return_Error_Response_On_Exception()
         {
-            _factory.OtpMock.RetrieveOID(Arg.Any<string>())
+            _factory.OtpMock.RetrieveUserId(Arg.Any<string>())
                 .Throws(new Exception("DB crash"));
 
             var response = await _client.PostAsJsonAsync("/api/token", new { code = "9999" });

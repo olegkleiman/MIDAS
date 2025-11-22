@@ -6,15 +6,15 @@ namespace midas.Models.SMS
     public class SMSPayload
     {
         [JsonPropertyName("applicationId")]
-        public string? applicationId { get; set; }
+        public string? ApplicationId { get; set; }
 
         [JsonPropertyName("transactionId")]
-        public string? transactionId { get; set; }
+        public string? TransactionId { get; set; }
 
         [JsonPropertyName("deliveryName")]
-        public string? deliveryName { get; set; }
+        public string? DeliveryName { get; set; }
 
         [JsonPropertyName("messages")]
-        public List<SMSMessage> messages { get; set; }
+        public List<SMSMessage>? Messages { get; set; }
     }
 }

@@ -43,8 +43,8 @@ namespace midas.Services.SMS
 
             SMSPayload smsContent = new()
             {
-                applicationId = smsAppId,
-                messages = messages
+                ApplicationId = smsAppId,
+                Messages = messages
             };
 
             var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(smsContent), null, "application/json");
