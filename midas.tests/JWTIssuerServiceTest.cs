@@ -19,7 +19,7 @@ namespace midas.tests
 {
     internal class JWTIssuerServiceTest
     {
-        private JWTIssuerOptions _jwtOptions = new()
+        private TokenOptions _jwtOptions = new()
         {
             Issuer = "test-issuer",
             Audience = "test-audience",
@@ -37,7 +37,7 @@ namespace midas.tests
             ClientSecret = "3333"
         };
 
-        private ILogger<JWTIssuerService>?   _logger;
+        private ILogger<TokenService>?   _logger;
         private SecretClient?                _secretClient;
         private KeyClient?                   _keyClient;
         private EncryptionHelper?            _encryptionHelper;
@@ -45,7 +45,7 @@ namespace midas.tests
         [SetUp]
         public void Setup()
         {
-            _logger = Substitute.For<ILogger<JWTIssuerService>>();
+            _logger = Substitute.For<ILogger<TokenService>>();
             _secretClient = Substitute.For<SecretClient>();
             _keyClient = Substitute.For<KeyClient>();
             _encryptionHelper = Substitute.For<EncryptionHelper>("dummy");
@@ -55,7 +55,7 @@ namespace midas.tests
         public void IssueForSubject_ShouldReturnTokens()
         {
             // Arrange
-            var optionsJwt = Substitute.For<IOptions<JWTIssuerOptions>>();
+            var optionsJwt = Substitute.For<IOptions<TokenOptions>>();
             optionsJwt.Value.Returns(_jwtOptions);
 
             var optionsOidc = Substitute.For<IOptions<OidcOptions>>();
@@ -89,7 +89,7 @@ namespace midas.tests
             //_keyClient.GetKeyAsync(_jwtOptions.KeyName)
             //    .Returns(Task.FromResult(Response.FromValue(fakeKey, Substitute.For<Response>())));
 
-            //var service = new JWTIssuerService(
+            //var service = new TokenService(
             //    optionsJwt,
             //    optionsOidc,
             //    _logger,

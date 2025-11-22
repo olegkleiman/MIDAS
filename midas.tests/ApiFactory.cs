@@ -14,7 +14,7 @@ public class ApiFactory : WebApplicationFactory<midas.Program>
     public IMembershipService MembershipMock { get; private set; } = null!;
     public IOTPService OtpMock { get; private set; } = null!;
     public ISMSService SmsMock { get; private set; } = null!;
-    public IJWTIssuerService JwtMock { get; private set; } = null;
+    public ITokenService JwtMock { get; private set; } = null;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -24,13 +24,13 @@ public class ApiFactory : WebApplicationFactory<midas.Program>
             services.RemoveAll(typeof(IMembershipService));
             services.RemoveAll(typeof(IOTPService));
             services.RemoveAll(typeof(ISMSService));
-            services.RemoveAll(typeof(IJWTIssuerService));
+            services.RemoveAll(typeof(ITokenService));
 
             // Создаем моки
             MembershipMock = NSubstitute.Substitute.For<IMembershipService>();
             OtpMock = NSubstitute.Substitute.For<IOTPService>();
             SmsMock = NSubstitute.Substitute.For<ISMSService>();
-            JwtMock = NSubstitute.Substitute.For<IJWTIssuerService>();
+            JwtMock = NSubstitute.Substitute.For<ITokenService>();
 
             // Регистрируем замену
             services.AddSingleton(MembershipMock);

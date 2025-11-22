@@ -1,6 +1,6 @@
 ﻿namespace midas.Services.JWT
 {
-    public class JWTIssuerOptions
+    public class TokenOptions
     {
         public int ExpiredInHours { get; set; }
         public required string Issuer { get; set; }

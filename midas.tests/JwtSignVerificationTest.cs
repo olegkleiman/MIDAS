@@ -19,7 +19,7 @@ namespace midas.tests
     internal class JwtSignVerificationTest
     {
         private OidcOptions?        _oidcOptions;
-        private JWTIssuerOptions?   _jwtOptions;
+        private TokenOptions?   _jwtOptions;
 
 
         [SetUp]
@@ -30,7 +30,7 @@ namespace midas.tests
                 .Build();
 
             _oidcOptions = configuration.GetSection("OidcOptions").Get<OidcOptions>();
-            _jwtOptions = configuration.GetSection("JWTIssuerOptions").Get<JWTIssuerOptions>();
+            _jwtOptions = configuration.GetSection("TokenOptions").Get<TokenOptions>();
         }
 
         [Test]
@@ -43,7 +43,7 @@ namespace midas.tests
             if (_oidcOptions == null)
                 throw new InvalidOperationException("OidcOptions configuration is missing or invalid.");
             if (_jwtOptions == null)
-                throw new InvalidOperationException("JWTIssuerOptions configuration is missing or invalid.");
+                throw new InvalidOperationException("TokenOptions configuration is missing or invalid.");
 
             var credential = new ClientSecretCredential(
                 _oidcOptions.TenantID,
