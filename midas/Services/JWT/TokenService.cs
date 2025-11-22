@@ -96,7 +96,7 @@ namespace midas.Services.JWT
             // create compact JWE (alg=RSA-OAEP-256, enc=A256GCM)
             string jwe = Jose.JWT.Encode(payload,
                                 rsaPublic,
-                                JweAlgorithm.RSA_OAEP,
+                                JweAlgorithm.RSA_OAEP_256,
                                 JweEncryption.A256GCM);
             // JWE consists of 5 parts : header.encryptedKey.iv.ciphertext.authTag
 
@@ -129,15 +129,22 @@ namespace midas.Services.JWT
             string tagB64Url = parts[4];   // auth tag
 
             byte[] encryptedCek = Jose.Base64Url.Decode(encryptedKeyB64Url);
+
             byte[] iv = Jose.Base64Url.Decode(ivB64Url);
+            if (iv.Length != 12) throw new InvalidOperationException("IV must be 12 bytes");
+
             byte[] ciphertext = Jose.Base64Url.Decode(ciphertextB64Url);
+            
             byte[] tag = Jose.Base64Url.Decode(tagB64Url);
+            if (tag.Length != 16) throw new InvalidOperationException("GCM tag must be 16 bytes");
 
             // 4. Decrypt CEK via Key Vault (RSA-OAEP-256)
             var decryptResult = await cryptoClient.DecryptAsync(
-                EncryptionAlgorithm.RsaOaep,
+                EncryptionAlgorithm.RsaOaep256,
                 encryptedCek);
             byte[] cek = decryptResult.Plaintext; // this is the symmetric AES kvKey (should be 32 bytes for A256GCM)
+            if (cek.Length != 32)
+                throw new InvalidOperationException($"Invalid CEK length: {cek.Length}. Expected 32 bytes for A256GCM.");
 
             // 5. Now decrypt AES-GCM:
             // AesGcm expects ciphertext and tag separately. We have both.
@@ -147,7 +154,7 @@ namespace midas.Services.JWT
 
             try
             {
-                using var aesGcm = new System.Security.Cryptography.AesGcm(cek);
+                using var aesGcm = new System.Security.Cryptography.AesGcm(cek.AsSpan(), tag.Length);
                 aesGcm.Decrypt(iv, ciphertext, tag, decrypted, aad);
             }
             catch (CryptographicException ex)
@@ -157,7 +164,11 @@ namespace midas.Services.JWT
             }
 
             // Convert JSON → Dictionary<string, object>
-            return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(decrypted);
+            string json = Encoding.UTF8.GetString(decrypted);
+            return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
+                json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
         }
 
         public async Task<Dictionary<string, object>> ValidateJweToken(string jwe)
@@ -172,8 +183,9 @@ namespace midas.Services.JWT
             return claims;
         }
 
-        private bool ValidateLifetime(Dictionary<string, object> claims)
+        private static bool ValidateLifetime(Dictionary<string, object> claims)
         {
+
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if (claims.TryGetValue(JwtRegisteredClaimNames.Exp, out object? expObj))
             {
