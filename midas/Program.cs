@@ -135,7 +135,7 @@ namespace midas
                                             [FromServices] ITokenService tokenService
                                            ) =>
             {
-                var claims = await tokenService.VerifyJWE(formData.token);
+                var claims = await tokenService.ValidateJweToken(formData.token);
                 return Results.Ok(claims);
 
                 //IEnumerable<Claim> claims = await jwtIssuer.VerifyJWT(formData.token);

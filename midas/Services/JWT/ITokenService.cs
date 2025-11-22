@@ -10,6 +10,6 @@ namespace midas.Services.JWT
         Task<AuthTokens> IssueJWEForSubject(string subject);
 
         Task<IEnumerable<Claim>> VerifyJWT(string token);
-        Task<string> VerifyJWE(string token);
+        public Task<Dictionary<string, object>> ValidateJweToken(string jwe);
     }
 }
