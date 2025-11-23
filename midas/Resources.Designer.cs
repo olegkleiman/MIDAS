@@ -61,6 +61,42 @@ namespace midas {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Could not find received refresh token.
+        /// </summary>
+        internal static string error_no_such_refresh_token {
+            get {
+                return ResourceManager.GetString("error_no_such_refresh_token", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh token expired.
+        /// </summary>
+        internal static string error_resresh_token_expired {
+            get {
+                return ResourceManager.GetString("error_resresh_token_expired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid access token.
+        /// </summary>
+        internal static string invalid_access_token {
+            get {
+                return ResourceManager.GetString("invalid_access_token", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Issuer is not allowed.
+        /// </summary>
+        internal static string no_clientId {
+            get {
+                return ResourceManager.GetString("no_clientId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Could not find customer.
         /// </summary>
         internal static string no_customer {
@@ -70,11 +106,47 @@ namespace midas {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Couldn&apos;t deserialize input parameters.
+        /// </summary>
+        internal static string no_params {
+            get {
+                return ResourceManager.GetString("no_params", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Issuer is not allowed.
+        /// </summary>
+        internal static string not_allowed_issuer {
+            get {
+                return ResourceManager.GetString("not_allowed_issuer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Your verification code is:.
         /// </summary>
         internal static string sms_message {
             get {
                 return ResourceManager.GetString("sms_message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Token expired.
+        /// </summary>
+        internal static string token_expired {
+            get {
+                return ResourceManager.GetString("token_expired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown Client Id.
+        /// </summary>
+        internal static string unknown_client_id {
+            get {
+                return ResourceManager.GetString("unknown_client_id", resourceCulture);
             }
         }
         

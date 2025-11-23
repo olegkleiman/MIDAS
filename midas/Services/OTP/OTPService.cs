@@ -61,6 +61,16 @@ namespace midas.Services.OTP
             return _dbContext.SaveChanges() > 0;
         }
 
+        public bool SaveRefreshToken(string refreshToken)
+        {
+            _dbContext.RefreshTokens.Add(new RefreshToken()
+            {
+               refresh_token = refreshToken
+            });
+
+            return _dbContext.SaveChanges() > 0;
+        }
+
         public string RetrieveUserId(string code)
         {
             var storedValue = (_dbContext.Otps.Where(
@@ -73,8 +83,26 @@ namespace midas.Services.OTP
             return storedValue.user_id;
         }
 
+        public bool IsRefreshTokenValid(string refreshToken)
+        {
+            var storedValue = (_dbContext.RefreshTokens.Where(
+                info => info.refresh_token != null && info.refresh_token.Contains(refreshToken)
+            )).FirstOrDefault();
+            return storedValue != null;
+        }
 
+        public bool DeleteRefreshToken(string refreshToken)
+        {
+            //var storedValue = (_dbContext.RefreshTokens.Where(
+            //    info => info.refresh_token != null && info.refresh_token.Contains(refreshToken)
+            //)).FirstOrDefault();
+            //if (storedValue == null)
+            //    return false;
+            //_dbContext.RefreshTokens.Remove(storedValue);
+            //return _dbContext.SaveChanges() > 0;
 
+            return true;
+        }
 
     }
 }

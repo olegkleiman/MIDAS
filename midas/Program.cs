@@ -11,6 +11,7 @@ using midas.Services.Membership;
 using midas.Services.Oid;
 using midas.Services.OTP;
 using midas.Services.SMS;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace midas
 {
@@ -40,12 +41,16 @@ namespace midas
                 client.BaseAddress = new Uri(options.EndpointUrl);
             });
 
+            // Add services to the container.
+
+            // Scoped services live per HTTP request.
             builder.Services.AddScoped<IMembershipService, MembershipService>();
             builder.Services.AddScoped<IOTPService, OTPService>();
-            builder.Services.AddSingleton<ITokenService, TokenService>();
+            builder.Services.AddScoped<ITokenService, TokenService>();
+
+            // Singletons live for the entire application lifetime.
             builder.Services.AddSingleton<IOidService, OidService>();
 
-            // Add services to the container.
             builder.Services.AddAuthorization();
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -164,10 +169,20 @@ namespace midas
             /// For URL query parameters, this '+' is automatically replaced with ' ' (space) that eventually 
             /// URL encoding convention.
             /// To prevent such replacement, POST verb is used.
-            app.MapPost("/refresh_token",
-                    [AllowAnonymous] (ILogger<Program> logger,
+            app.MapPost("/api/refresh_token",
+                     [AllowAnonymous] async (ILogger<Program> logger,
+                                     [FromServices] ITokenService tokenService,
                                      [FromBody] RefreshTokenFormData body) =>
             {
+                try
+                {
+                    var tokens = await tokenService.RefreshTokens(body.refresh_token);
+                    return Results.Ok(tokens);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Ok(new TLVOAuthErrorResponse(errorDesc: ex.Message, errorId: 10));
+                }
 
             });
 

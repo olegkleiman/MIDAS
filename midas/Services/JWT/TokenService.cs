@@ -7,22 +7,27 @@ using Microsoft.Extensions.Options;
 
 using Microsoft.IdentityModel.Tokens;
 using midas.Models;
+using midas.Services.Oid;
+using midas.Services.OTP;
 using midas.Utils;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace midas.Services.JWT
 {
     public class TokenService(IOptions<TokenOptions> jwtOptions,
-                                  IOptions<OidcOptions> oidcOptions,
-                                  ILogger<TokenService> logger) : ITokenService
+                            IOptions<OidcOptions> oidcOptions,
+                            IOTPService otpService,
+                            ILogger<TokenService> logger) : ITokenService
 
     {
-        private readonly TokenOptions _jwtOptions = jwtOptions.Value;
-        private readonly OidcOptions _oidcOptions = oidcOptions.Value;
+        private readonly IOTPService _otpService        = otpService;
+        private readonly TokenOptions _jwtOptions       = jwtOptions.Value;
+        private readonly OidcOptions _oidcOptions       = oidcOptions.Value;
         private readonly ILogger<TokenService> _logger = logger;
 
         SecretClient? _secretClient = null;
@@ -55,7 +60,9 @@ namespace midas.Services.JWT
                 EncryptionHelper encryptionHelper = _encryptionHelper ??
                                                     new(secret.Value);
                 long exp = (long)(DateTime.UtcNow.AddDays(60) - _epoch).TotalSeconds;
-                return encryptionHelper.Encrypt($"{oid};{exp}");
+                var refreshToken = encryptionHelper.Encrypt($"{oid};{exp}");
+                if( _otpService.SaveRefreshToken(refreshToken) )
+                    return refreshToken;
             }
             catch (Exception ex)
             {
@@ -63,6 +70,43 @@ namespace midas.Services.JWT
             }
 
             return string.Empty;
+        }
+
+        public async Task<AuthTokens?> RefreshTokens(string refreshToken)
+        {
+            _secretClient ??= new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
+
+            try
+            {
+                if ( _otpService.IsRefreshTokenValid(refreshToken))
+                { 
+                    KeyVaultSecret secret = _secretClient.GetSecret(_jwtOptions.RefreshTokenSecretName);
+                    EncryptionHelper encryptionHelper = _encryptionHelper ??
+                                                        new(secret.Value);
+
+                    var _token = encryptionHelper.Decrypt(refreshToken);
+                    string[] lexems = _token.Split(";");
+                    
+                    int epochSeconds = int.Parse(lexems[1]);
+                    DateTime expirationDateTime = DateTime.UnixEpoch.AddSeconds(epochSeconds);
+                    if (DateTime.UtcNow > expirationDateTime)
+                        throw new ApplicationException(Resources.error_resresh_token_expired);
+
+                    string userId = lexems[0];
+                    var tokens = await IssueJWEForSubject(userId);
+                    _otpService.DeleteRefreshToken(refreshToken);
+                    return tokens;
+                }
+                else
+                {
+                    throw new ApplicationException(Resources.error_no_such_refresh_token);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to refresh tokens: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<AuthTokens> IssueJWEForSubject(string subject)
@@ -174,6 +218,9 @@ namespace midas.Services.JWT
         public async Task<Dictionary<string, object>> ValidateJweToken(string jwe)
         {
             var claims = await DecryptJWE(jwe);
+            if( claims == null )
+                throw new SecurityTokenException("Failed to parse token claims.");
+
             if (!ValidateLifetime(claims))
                 throw new SecurityTokenExpiredException("The token is expired or not yet valid.");
 

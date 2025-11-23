@@ -123,44 +123,21 @@
   <data name="no_customer" xml:space="preserve">
     <value>המשתמש לא נמצא</value>
   </data>
-  <data name="bad_clientid" xml:space="preserve">
-    <value>No B2C policy is assigned to passed clientId</value>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="unknown_otp" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
   </data>
-  <data name="clients_mapping_table_name" xml:space="preserve">
-    <value>clientsMapping</value>
-  </data>
-  <data name="configuration_table_name" xml:space="preserve">
-    <value>tlvssoConfiguration</value>
+  <data name="error_no_such_refresh_token" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
   </data>
   <data name="invalid_access_token" xml:space="preserve">
     <value>Invalid token</value>
-  </data>
-  <data name="invalid_ct" xml:space="preserve">
-    <value>Invalid SSO Token</value>
   </data>
   <data name="not_allowed_issuer" xml:space="preserve">
     <value>Issuer is not allowed</value>
   </data>
   <data name="no_clientId" xml:space="preserve">
-    <value>No clientId was passed in query string or it has a bad format</value>
-  </data>
-  <data name="no_idp" xml:space="preserve">
-    <value>Can't connect to IdP subsytem</value>
-  </data>
-  <data name="no_params" xml:space="preserve">
-    <value>Couldn't deserialize input parameters</value>
-  </data>
-  <data name="no_policy_url" xml:space="preserve">
-    <value>Could not get policy url</value>
-  </data>
-  <data name="no_previos_login" xml:space="preserve">
-    <value>No previous login was found</value>
-  </data>
-  <data name="no_token_endpoint" xml:space="preserve">
-    <value>Can't find token endpoint</value>
-  </data>
-  <data name="no_upgrade_group_name" xml:space="preserve">
-    <value>Can't find Upgrade Group Name</value>
+    <value>No clientId was passed in query string or it has a bIssuer is not allowedad format</value>
   </data>
   <data name="token_expired" xml:space="preserve">
     <value>Token expired</value>
@@ -168,8 +145,10 @@
   <data name="unknown_client_id" xml:space="preserve">
     <value>Unknown Client Id</value>
   </data>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="unknown_otp" type="System.Resources.ResXNullRef, System.Windows.Forms">
+  <data name="error_resresh_token_expired" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
+  </data>
+  <data name="no_params" xml:space="preserve">
+    <value>Couldn't deserialize input parameters</value>
   </data>
 </root>

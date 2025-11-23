@@ -6,12 +6,15 @@ namespace midas.Services.OTP
     {
         string Generate();
 
-        // Store OTP and retrieve the OID acociated with it after storing is complete
+        // Store user_id and return the operation resut
         bool Save(string userId, 
                   string phoneNumber,
                   string otp);
         
         // Find OID accociated with OTP
         string RetrieveUserId(string code);
+        bool SaveRefreshToken(string refreshToken);
+        bool IsRefreshTokenValid(string refreshToken);
+        bool DeleteRefreshToken(string refreshToken);
     }
 }

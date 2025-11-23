@@ -126,4 +126,28 @@
   <data name="unknown_otp" xml:space="preserve">
     <value>Unknown OTP</value>
   </data>
+  <data name="error_no_such_refresh_token" xml:space="preserve">
+    <value>Could not find received refresh token</value>
+  </data>
+  <data name="invalid_access_token" xml:space="preserve">
+    <value>Invalid access token</value>
+  </data>
+  <data name="not_allowed_issuer" xml:space="preserve">
+    <value>Issuer is not allowed</value>
+  </data>
+  <data name="no_clientId" xml:space="preserve">
+    <value>Issuer is not allowed</value>
+  </data>
+  <data name="token_expired" xml:space="preserve">
+    <value>Token expired</value>
+  </data>
+  <data name="unknown_client_id" xml:space="preserve">
+    <value>Unknown Client Id</value>
+  </data>
+  <data name="error_resresh_token_expired" xml:space="preserve">
+    <value>Refresh token expired</value>
+  </data>
+  <data name="no_params" xml:space="preserve">
+    <value>Couldn't deserialize input parameters</value>
+  </data>
 </root>

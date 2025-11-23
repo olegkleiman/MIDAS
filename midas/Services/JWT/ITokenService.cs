@@ -11,5 +11,7 @@ namespace midas.Services.JWT
 
         Task<IEnumerable<Claim>> VerifyJWT(string token);
         public Task<Dictionary<string, object>> ValidateJweToken(string jwe);
-    }
+
+        Task<AuthTokens?> RefreshTokens(string refreshToken);
+     }
 }
