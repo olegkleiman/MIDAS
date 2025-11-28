@@ -31,6 +31,7 @@ packages/
 
 # ASP.NET / app settings
 # keep appsettings.json in source; ignore local/dev secret overrides if you use them
+appsettings.Development.json
 appsettings.*.Local.json
 appsettings.*.Secrets.json
 secrets.json
