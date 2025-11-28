@@ -140,8 +140,8 @@ namespace midas.Services.JWT
             // create compact JWE (alg=RSA-OAEP-256, enc=A256GCM)
             string jwe = Jose.JWT.Encode(payload,
                                 rsaPublic,
-                                JweAlgorithm.RSA_OAEP_256,
-                                JweEncryption.A256GCM);
+                                JweAlgorithm.RSA_OAEP_256, // used to encrypt the CEK - Content Encryption Key
+                                JweEncryption.A256GCM); // used to encrypt the payload (claims)
             // JWE consists of 5 parts : header.encryptedKey.iv.ciphertext.authTag
 
             return new AuthTokens()

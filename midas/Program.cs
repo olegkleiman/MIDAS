@@ -160,7 +160,9 @@ namespace midas
                 //                };  
 
                 //return Results.Ok(claimList);
-            });
+            })
+            .WithName("UserDetails")
+            .WithOpenApi();
 
             /// <summary>
             /// This method receives the refresh token and, if verified, issues the set of new tokens
@@ -184,7 +186,9 @@ namespace midas
                     return Results.Ok(new TLVOAuthErrorResponse(errorDesc: ex.Message, errorId: 10));
                 }
 
-            });
+            })
+            .WithName("RefreshTokens")
+            .WithOpenApi(); ;
 
             app.Run();
         }

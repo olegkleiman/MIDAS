@@ -93,6 +93,8 @@ namespace midas.Services.OTP
 
         public bool DeleteRefreshToken(string refreshToken)
         {
+            // TODO: Implement refresh token deletion logic
+
             //var storedValue = (_dbContext.RefreshTokens.Where(
             //    info => info.refresh_token != null && info.refresh_token.Contains(refreshToken)
             //)).FirstOrDefault();
