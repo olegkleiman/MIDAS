@@ -19,16 +19,16 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace midas.Services.JWT
 {
-    public class TokenService(IOptions<TokenOptions> jwtOptions,
+    public class TokenService(IOptions<TokenOptions> tokenOptions,
                             IOptions<OidcOptions> oidcOptions,
                             IOTPService otpService,
                             ILogger<TokenService> logger) : ITokenService
 
     {
-        private readonly IOTPService _otpService        = otpService;
-        private readonly TokenOptions _jwtOptions       = jwtOptions.Value;
-        private readonly OidcOptions _oidcOptions       = oidcOptions.Value;
-        private readonly ILogger<TokenService> _logger = logger;
+        private readonly IOTPService    _otpService         = otpService;
+        private readonly TokenOptions   _tokenOptions       = tokenOptions.Value;
+        private readonly OidcOptions    _oidcOptions        = oidcOptions.Value;
+        private readonly ILogger<TokenService> _logger      = logger;
 
         SecretClient? _secretClient = null;
         KeyClient? _keyClient = null;
@@ -52,14 +52,14 @@ namespace midas.Services.JWT
 
         private string CreateRefreshToken(string oid)
         {
-            _secretClient ??= new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
+            _secretClient ??= new(new Uri(_tokenOptions.KeyVaultUrl), _credentials);
 
             try
             {
-                KeyVaultSecret secret = _secretClient.GetSecret(_jwtOptions.RefreshTokenSecretName);
+                KeyVaultSecret secret = _secretClient.GetSecret(_tokenOptions.RefreshTokenSecretName);
                 EncryptionHelper encryptionHelper = _encryptionHelper ??
                                                     new(secret.Value);
-                long exp = (long)(DateTime.UtcNow.AddDays(60) - _epoch).TotalSeconds;
+                long exp = (long)(DateTime.UtcNow.AddDays(tokenOptions.Value.RefreshTokenExpiredInDays) - _epoch).TotalSeconds;
                 var refreshToken = encryptionHelper.Encrypt($"{oid};{exp}");
                 if( _otpService.SaveRefreshToken(refreshToken) )
                     return refreshToken;
@@ -74,13 +74,13 @@ namespace midas.Services.JWT
 
         public async Task<AuthTokens?> RefreshTokens(string refreshToken)
         {
-            _secretClient ??= new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
+            _secretClient ??= new(new Uri(_tokenOptions.KeyVaultUrl), _credentials);
 
             try
             {
                 if ( _otpService.IsRefreshTokenValid(refreshToken))
                 { 
-                    KeyVaultSecret secret = _secretClient.GetSecret(_jwtOptions.RefreshTokenSecretName);
+                    KeyVaultSecret secret = _secretClient.GetSecret(_tokenOptions.RefreshTokenSecretName);
                     EncryptionHelper encryptionHelper = _encryptionHelper ??
                                                         new(secret.Value);
 
@@ -111,22 +111,22 @@ namespace midas.Services.JWT
 
         public async Task<AuthTokens> IssueJWEForSubject(string subject)
         {
-            long exp = (long)(DateTime.UtcNow.AddHours(_jwtOptions.ExpiredInHours) - _epoch).TotalSeconds;
+            long exp = (long)(DateTime.UtcNow.AddHours(_tokenOptions.ExpiredInHours) - _epoch).TotalSeconds;
             long iat = (long)(DateTime.UtcNow - _epoch).TotalSeconds;
             long nbf = iat;
 
             var payload = new Dictionary<string, object>
             {
                 { JwtRegisteredClaimNames.Sub, subject },
-                { JwtRegisteredClaimNames.Iss, _jwtOptions.Issuer },
-                { JwtRegisteredClaimNames.Aud, _jwtOptions.Audience },
+                { JwtRegisteredClaimNames.Iss, _tokenOptions.Issuer },
+                { JwtRegisteredClaimNames.Aud, _tokenOptions.Audience },
                 { JwtRegisteredClaimNames.Exp, exp },
                 { JwtRegisteredClaimNames.Iat, iat },
                 { JwtRegisteredClaimNames.Nbf, nbf }
             };
 
-            _keyClient ??= new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
-            KeyVaultKey kvKey = await _keyClient.GetKeyAsync(_jwtOptions.KeyName);
+            _keyClient ??= new(new Uri(_tokenOptions.KeyVaultUrl), _credentials);
+            KeyVaultKey kvKey = await _keyClient.GetKeyAsync(_tokenOptions.KeyName);
             
             // Theoretically, Azure KV could return the kvKey that is not RSA
             if( kvKey.KeyType != KeyType.Rsa && kvKey.KeyType != KeyType.RsaHsm )
@@ -154,8 +154,8 @@ namespace midas.Services.JWT
         public async Task<Dictionary<string, object>?> DecryptJWE(string jwe)
         {
             // 1. Получаем ссылку на ключ (не сам ключ)
-            _keyClient ??= new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
-            KeyVaultKey key = await _keyClient.GetKeyAsync(_jwtOptions.KeyName);
+            _keyClient ??= new(new Uri(_tokenOptions.KeyVaultUrl), _credentials);
+            KeyVaultKey key = await _keyClient.GetKeyAsync(_tokenOptions.KeyName);
 
             // 2. Create CryptographyClient because the private kvKey should never leaves the Key Vault
             // and we will pass the payload to there 
@@ -295,10 +295,10 @@ namespace midas.Services.JWT
             string iss = issObj.ToString()!;
             string aud = audObj.ToString()!;
 
-            if (iss != _jwtOptions.Issuer)
+            if (iss != _tokenOptions.Issuer)
                 return false;
 
-            if (aud != _jwtOptions.Audience)
+            if (aud != _tokenOptions.Audience)
                 return false;
 
             return true;
@@ -308,12 +308,12 @@ namespace midas.Services.JWT
         {
             var refreshToken = CreateRefreshToken(subject);
 
-            _keyClient ??= new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
-            KeyVaultKey key = await _keyClient.GetKeyAsync(_jwtOptions.KeyName);
+            _keyClient ??= new(new Uri(_tokenOptions.KeyVaultUrl), _credentials);
+            KeyVaultKey key = await _keyClient.GetKeyAsync(_tokenOptions.KeyName);
 
             // Use CryptographyClient to sign with Key Vault private kvKey (RS256)
             var cryptoClient = new CryptographyClient(key.Id, _credentials);
-            long exp = (long)(DateTime.UtcNow.AddHours(_jwtOptions.ExpiredInHours) - _epoch).TotalSeconds;
+            long exp = (long)(DateTime.UtcNow.AddHours(_tokenOptions.ExpiredInHours) - _epoch).TotalSeconds;
             long iat = (long)(DateTime.UtcNow - _epoch).TotalSeconds;
 
             var header = new Dictionary<string, object>
@@ -325,8 +325,8 @@ namespace midas.Services.JWT
             var payload = new Dictionary<string, object>
             {
                 { JwtRegisteredClaimNames.Sub, subject },
-                { JwtRegisteredClaimNames.Iss, _jwtOptions.Issuer },
-                { JwtRegisteredClaimNames.Aud, _jwtOptions.Audience },
+                { JwtRegisteredClaimNames.Iss, _tokenOptions.Issuer },
+                { JwtRegisteredClaimNames.Aud, _tokenOptions.Audience },
                 { JwtRegisteredClaimNames.Exp, exp },
                 { JwtRegisteredClaimNames.Iat, iat }
             };
@@ -356,20 +356,20 @@ namespace midas.Services.JWT
 
         public async Task<IEnumerable<Claim>> VerifyJWT(string token)
         {
-            _secretClient ??= new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
+            _secretClient ??= new(new Uri(_tokenOptions.KeyVaultUrl), _credentials);
 
             KeyClient keyClient = _keyClient ??
-                new(new Uri(_jwtOptions.KeyVaultUrl), _credentials);
-            KeyVaultKey key = await keyClient.GetKeyAsync(_jwtOptions.KeyName);
+                new(new Uri(_tokenOptions.KeyVaultUrl), _credentials);
+            KeyVaultKey key = await keyClient.GetKeyAsync(_tokenOptions.KeyName);
 
             var tokenHandler = new JwtSecurityTokenHandler();
 
             TokenValidationParameters validationParams = new()
             {
                 ValidateIssuer = true,
-                ValidIssuer = _jwtOptions.Issuer,
+                ValidIssuer = _tokenOptions.Issuer,
                 ValidateAudience = true,
-                ValidAudience = _jwtOptions.Audience,
+                ValidAudience = _tokenOptions.Audience,
                 ValidateLifetime = true,
                 ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 },
                 ValidateIssuerSigningKey = true,
@@ -380,7 +380,7 @@ namespace midas.Services.JWT
                         var keyUri = new Uri(kid);
 
                         // segments: ["/", "keys/", "{keyName}/", "{version}"]
-                        string keyName = keyUri.Segments.Length > 2 ? keyUri.Segments[2].TrimEnd('/') : _jwtOptions.KeyName;
+                        string keyName = keyUri.Segments.Length > 2 ? keyUri.Segments[2].TrimEnd('/') : _tokenOptions.KeyName;
                         string keyVersion = keyUri.Segments.Length > 3 ? keyUri.Segments[3].TrimEnd('/') : "";
 
                         // Synchronously fetch the specific kvKey version from Key Vault

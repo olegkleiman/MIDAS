@@ -18,7 +18,7 @@ namespace midas.tests
 {
     internal class JwtSignVerificationTest
     {
-        private OidcOptions?        _oidcOptions;
+        private OidcOptions?    _oidcOptions;
         private TokenOptions?   _jwtOptions;
 
 

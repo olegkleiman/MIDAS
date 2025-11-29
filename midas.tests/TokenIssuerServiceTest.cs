@@ -1,50 +1,35 @@
 ﻿using Azure;
 using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Secrets;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using midas.Services.JWT;
 using midas.Utils;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace midas.tests
 {
-    internal class JWTIssuerServiceTest
+    internal class TokenIssuerServiceTest
     {
-        private TokenOptions _jwtOptions = new()
-        {
-            Issuer = "test-issuer",
-            Audience = "test-audience",
-            KeyVaultUrl = "https://test.vault.azure.net/",
-            KeyName = "test-key",
-            OidSecretName = "refresh-secret",
-            RefreshTokenSecretName = "refresh",
-            ExpiredInHours = 1
-        };
+        private OidcOptions? _oidcOptions;
+        private TokenOptions? _tokenOptions;
 
-        private readonly OidcOptions _oidcOptions = new()
-        {
-            TenantID = "1111",
-            ClientID = "2222",
-            ClientSecret = "3333"
-        };
-
-        private ILogger<TokenService>?   _logger;
-        private SecretClient?                _secretClient;
-        private KeyClient?                   _keyClient;
-        private EncryptionHelper?            _encryptionHelper;
+        private ILogger<TokenService>? _logger;
+        private SecretClient? _secretClient;
+        private KeyClient? _keyClient;
+        private EncryptionHelper? _encryptionHelper;
 
         [SetUp]
         public void Setup()
         {
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.Development.json")
+                .Build();
+
+            _oidcOptions = configuration.GetSection("OidcOptions").Get<OidcOptions>();
+            _tokenOptions = configuration.GetSection("TokenOptions").Get<TokenOptions>();
+
             _logger = Substitute.For<ILogger<TokenService>>();
             _secretClient = Substitute.For<SecretClient>();
             _keyClient = Substitute.For<KeyClient>();
@@ -56,17 +41,17 @@ namespace midas.tests
         {
             // Arrange
             var optionsJwt = Substitute.For<IOptions<TokenOptions>>();
-            optionsJwt.Value.Returns(_jwtOptions);
+            optionsJwt.Value.Returns(_tokenOptions);
 
             var optionsOidc = Substitute.For<IOptions<OidcOptions>>();
             optionsOidc.Value.Returns(_oidcOptions);
 
             // Mock SecretClient.GetSecret()
             var secret = Response.FromValue(
-                new KeyVaultSecret(_jwtOptions.OidSecretName, "my-secret-value"),
+                new KeyVaultSecret(_tokenOptions.OidSecretName, "my-secret-value"),
                 Substitute.For<Response>()
             );
-            _secretClient.GetSecret(_jwtOptions.OidSecretName).Returns(secret);
+            _secretClient.GetSecret(_tokenOptions.OidSecretName).Returns(secret);
 
             //// Mock EncryptionHelper behavior (Encrypt)
             //_encryptionHelper.Encrypt(Arg.Any<string>())
