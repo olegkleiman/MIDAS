@@ -5,12 +5,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 using midas.Models;
+using midas.Services.Cache;
 using midas.Services.Db;
 using midas.Services.JWT;
 using midas.Services.Membership;
 using midas.Services.Oid;
 using midas.Services.OTP;
 using midas.Services.SMS;
+using StackExchange.Redis;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace midas
@@ -41,11 +46,17 @@ namespace midas
                 client.BaseAddress = new Uri(options.EndpointUrl);
             });
 
-            // Add services to the container.
+            builder.Services.AddScoped<IDatabase>(cfg =>
+            {
+                string? redisConnectionString = builder.Configuration.GetConnectionString("Redis_Cache");
+                ConnectionMultiplexer multiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
+                return multiplexer.GetDatabase();
+            });
 
             // Scoped services live per HTTP request.
             builder.Services.AddScoped<IMembershipService, MembershipService>();
             builder.Services.AddScoped<IOTPService, OTPService>();
+            builder.Services.AddScoped<ICacheService, CacheService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
 
             // Singletons live for the entire application lifetime.
@@ -115,7 +126,7 @@ namespace midas
                 try
                 {
                     string? userId = otpService.RetrieveUserId(request.code);
-                    if (string.IsNullOrEmpty(userId))
+                    if( string.IsNullOrEmpty(userId) )
                         return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.unknown_otp, errorId: 10));
 
                     var tokens = await jwtIssuer.IssueJWEForSubject(userId);
@@ -137,32 +148,59 @@ namespace midas
             /// The list of verified claims 
             ///</returns>
             app.MapPost("/api/tokeninfo", async ([FromBody] VerifyFormData formData,
-                                            [FromServices] ITokenService tokenService
+                                            [FromServices] ITokenService tokenService,
+                                            [FromServices] ICacheService cache
                                            ) =>
             {
-                var claims = await tokenService.ValidateJweToken(formData.token);
-                return Results.Ok(claims);
+                try
+                {
+                    var token = formData.token;
+                    var jweHeader = TokenService.JweHeader(token);
+                    if (jweHeader == null)
+                        return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.invalid_token, errorId: 20));
+                    var jti = jweHeader["jti"];
+                    if ( jti is null)
+                        return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.invalid_token, errorId: 19));
+                    if (cache.FindToken(jti.ToString()))
+                    {
+                        return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.error_revoked_token, errorId: 18));
+                    }
 
-                //IEnumerable<Claim> claims = await jwtIssuer.VerifyJWT(formData.token);
-                //var oid = (from c in claims
-                //            where c.Type == ClaimTypes.NameIdentifier
-                //            select c).FirstOrDefault();
-                //if( oid == null )
-                //    return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.no_customer, errorId: 14));
+                    var claims = await tokenService.ValidateJweToken(token);
 
-                //var userId = oidService.RetrieveUserId(oid.Value);
-
-                //var claimList = from claim in claims
-                //                select new
-                //                {
-                //                    Type = claim.Type,
-                //                    Value = claim.Type == ClaimTypes.NameIdentifier ? userId : claim.Value
-                //                };  
-
-                //return Results.Ok(claimList);
+                    return Results.Ok(claims);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Ok(new TLVOAuthErrorResponse(errorDesc: ex.Message, errorId: 21));
+                }
             })
             .WithName("UserDetails")
             .WithOpenApi();
+
+            /// <summary>
+            /// Revokes the passed token (refresh token or JWE)
+            /// </summary>
+            app.MapPost("/api/revoke", async ([FromBody] VerifyFormData formData,
+                                          [FromServices] IOTPService otpService,
+                                          [FromServices] ICacheService cache) =>
+            {
+                // Determine which token is revoked - refresh token or JWE
+                string token = formData.token;
+                string[] parts = token.Split('.');
+                
+                if ( parts.Length == 5 )
+                {
+                    cache.AddToken(token);
+                    return Results.Ok(new TLVOAuthErrorResponse(errorDesc: string.Empty, isError: false));
+                }
+
+                if ( !otpService.IsRefreshTokenValid(token) )
+                    return Results.Ok(new TLVOAuthErrorResponse(errorDesc: Resources.invalid_token, errorId: 20));
+                otpService.DeleteRefreshToken(token);
+
+                return Results.Ok(new TLVOAuthErrorResponse(errorDesc: string.Empty, isError: false));
+            });
 
             /// <summary>
             /// This method receives the refresh token and, if verified, issues the set of new tokens
