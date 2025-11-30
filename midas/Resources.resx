@@ -127,10 +127,10 @@
     <value>Unknown OTP</value>
   </data>
   <data name="error_no_such_refresh_token" xml:space="preserve">
-    <value>Could not find received refresh token</value>
+    <value>Could not find refresh token</value>
   </data>
-  <data name="invalid_access_token" xml:space="preserve">
-    <value>Invalid access token</value>
+  <data name="invalid_token" xml:space="preserve">
+    <value>Invalid token</value>
   </data>
   <data name="not_allowed_issuer" xml:space="preserve">
     <value>Issuer is not allowed</value>
@@ -149,5 +149,11 @@
   </data>
   <data name="no_params" xml:space="preserve">
     <value>Couldn't deserialize input parameters</value>
+  </data>
+  <data name="error_no_jwe" xml:space="preserve">
+    <value>Could not generate JWE</value>
+  </data>
+  <data name="error_revoked_token" xml:space="preserve">
+    <value>Revoked token</value>
   </data>
 </root>

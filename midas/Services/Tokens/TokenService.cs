@@ -93,9 +93,9 @@ namespace midas.Services.JWT
                         throw new ApplicationException(Resources.error_resresh_token_expired);
 
                     string userId = lexems[0];
-                    var tokens = await IssueJWEForSubject(userId);
+                    var token = await IssueJWEForSubject(userId);
                     _otpService.DeleteRefreshToken(refreshToken);
-                    return tokens;
+                    return token;
                 }
                 else
                 {
@@ -136,12 +136,18 @@ namespace midas.Services.JWT
 
             RSA rsaPublic = kvKey.Key.ToRSA(); // encryption based only on public kvKey
 
-            // TODO:
+            var jti = Guid.NewGuid().ToString();
+            var headers = new Dictionary<string, object>
+            {
+                { "jti",  jti}, // used for revokation
+                { "exp",  exp }
+            };
             // create compact JWE (alg=RSA-OAEP-256, enc=A256GCM)
             string jwe = Jose.JWT.Encode(payload,
                                 rsaPublic,
                                 JweAlgorithm.RSA_OAEP_256, // used to encrypt the CEK - Content Encryption Key
-                                JweEncryption.A256GCM); // used to encrypt the payload (claims)
+                                JweEncryption.A256GCM,  // used to encrypt the payload (claims)
+                                extraHeaders: headers);
             // JWE consists of 5 parts : header.encryptedKey.iv.ciphertext.authTag
 
             return new AuthTokens()
@@ -213,6 +219,26 @@ namespace midas.Services.JWT
                 json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             );
+        }
+
+        public static JwtHeader? JweHeader(string token)
+        {
+            string[] parts = token.Split('.');
+            if( parts.Length != 5)  // JWE consists of 5 parts : <protected header>.<encrypted key>.<IV>.<ciphertext>.<authTag>
+                throw new InvalidOperationException("Invalid JWE format.");
+
+            var header = parts[0];
+            var base64Header = header.Replace('-', '+').Replace('_', '/');
+            // Add padding if needed
+            switch (base64Header.Length % 4)
+            {
+                case 2: base64Header += "=="; break;
+                case 3: base64Header += "="; break;
+            }
+
+            byte[] bytes = Convert.FromBase64String(base64Header);
+            string jsonString = Encoding.UTF8.GetString(bytes);
+            return JsonSerializer.Deserialize<JwtHeader>(jsonString);
         }
 
         public async Task<Dictionary<string, object>> ValidateJweToken(string jwe)

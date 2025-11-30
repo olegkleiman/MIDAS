@@ -12,7 +12,7 @@ namespace midas.Services.OTP
                   string otp);
         
         // Find OID accociated with OTP
-        string RetrieveUserId(string code);
+        string RetrieveUserId(string otp);
         bool SaveRefreshToken(string refreshToken);
         bool IsRefreshTokenValid(string refreshToken);
         bool DeleteRefreshToken(string refreshToken);

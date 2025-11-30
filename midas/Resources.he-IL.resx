@@ -130,7 +130,7 @@
   <data name="error_no_such_refresh_token" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
   </data>
-  <data name="invalid_access_token" xml:space="preserve">
+  <data name="invalid_token" xml:space="preserve">
     <value>Invalid token</value>
   </data>
   <data name="not_allowed_issuer" xml:space="preserve">
@@ -150,5 +150,11 @@
   </data>
   <data name="no_params" xml:space="preserve">
     <value>Couldn't deserialize input parameters</value>
+  </data>
+  <data name="error_no_jwe" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="error_revoked_token" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
   </data>
 </root>

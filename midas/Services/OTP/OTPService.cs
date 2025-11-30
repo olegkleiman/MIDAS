@@ -93,17 +93,13 @@ namespace midas.Services.OTP
 
         public bool DeleteRefreshToken(string refreshToken)
         {
-            // TODO: Implement refresh token deletion logic
-
-            //var storedValue = (_dbContext.RefreshTokens.Where(
-            //    info => info.refresh_token != null && info.refresh_token.Contains(refreshToken)
-            //)).FirstOrDefault();
-            //if (storedValue == null)
-            //    return false;
-            //_dbContext.RefreshTokens.Remove(storedValue);
-            //return _dbContext.SaveChanges() > 0;
-
-            return true;
+            var storedValue = (_dbContext.RefreshTokens.Where(
+                info => info.refresh_token != null && info.refresh_token.Contains(refreshToken)
+            )).FirstOrDefault();
+            if (storedValue == null)
+                return false;
+            _dbContext.RefreshTokens.Remove(storedValue);
+            return _dbContext.SaveChanges() > 0;
         }
 
     }

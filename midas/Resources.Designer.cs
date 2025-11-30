@@ -61,7 +61,16 @@ namespace midas {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Could not find received refresh token.
+        ///   Looks up a localized string similar to Could not generate JWE.
+        /// </summary>
+        internal static string error_no_jwe {
+            get {
+                return ResourceManager.GetString("error_no_jwe", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find refresh token.
         /// </summary>
         internal static string error_no_such_refresh_token {
             get {
@@ -79,11 +88,20 @@ namespace midas {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid access token.
+        ///   Looks up a localized string similar to Revoked token.
         /// </summary>
-        internal static string invalid_access_token {
+        internal static string error_revoked_token {
             get {
-                return ResourceManager.GetString("invalid_access_token", resourceCulture);
+                return ResourceManager.GetString("error_revoked_token", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid token.
+        /// </summary>
+        internal static string invalid_token {
+            get {
+                return ResourceManager.GetString("invalid_token", resourceCulture);
             }
         }
         
