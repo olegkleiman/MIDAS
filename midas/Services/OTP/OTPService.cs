@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using midas.Models.Tables;
 using midas.Services.Db;
-using midas.Services.Oid;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -65,7 +64,7 @@ namespace midas.Services.OTP
         {
             _dbContext.RefreshTokens.Add(new RefreshToken()
             {
-               refresh_token = refreshToken
+                refresh_token = refreshToken
             });
 
             return _dbContext.SaveChanges() > 0;

@@ -181,7 +181,7 @@ namespace midas
             /// <summary>
             /// Revokes the passed token (refresh token or JWE)
             /// </summary>
-            app.MapPost("/api/revoke", async ([FromBody] VerifyFormData formData,
+            app.MapPost("/api/revoke", ([FromBody] VerifyFormData formData,
                                           [FromServices] IOTPService otpService,
                                           [FromServices] ICacheService cache) =>
             {
